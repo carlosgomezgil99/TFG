@@ -5,20 +5,16 @@ Created on Tue Dec 14 15:17:22 2021
 @author: carlo
 
 """
+
 from sklearn.preprocessing import MinMaxScaler
-from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import numpy as np
-from math import sqrt
 from keras.models import Sequential
-from keras.layers import Dense, Flatten
-import tensorflow as tf
-from tensorflow.keras.callbacks import Callback
-from IPython.display import clear_output
-from tensorflow.keras import callbacks
+from keras.layers import Dense
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-scaler = MinMaxScaler()
+
+#Carga de coordenadas una a una del archivo 'coordenadas.txt'
 X=np.loadtxt('coordenadas.txt', delimiter=' ', skiprows=1,usecols=1)
 
 Y=np.loadtxt('coordenadas.txt', delimiter=' ', skiprows=1,usecols=2)
@@ -31,18 +27,15 @@ v_Y=np.loadtxt('coordenadas.txt', delimiter=' ', skiprows=1,usecols=5)
 
 v_Z=np.loadtxt('coordenadas.txt', delimiter=' ', skiprows=1,usecols=6)
 
-
-
-    
+#Creación de matriz con coordenadas y respectivas velocidades en cada coordenada    
 matriz=[]
-
 
 for i in range(len(X)):
     a=[X[i],Y[i],Z[i],v_X[i],v_Y[i],v_Z[i]]
 
     matriz.append(a)
 
-
+#Centro encontrado a partir de la media de la coordenada X
 x0=1474538.05673
 y0=-5811243.26336
 z0= 2168958.84928
@@ -50,6 +43,7 @@ z0= 2168958.84928
 centro=[x0,y0,z0]
 centro=np.asarray(centro)
 
+#Encontrar 112 puntos más cercanos al centro
 puntos=[]
 diff=[]
 matriz=np.asarray(matriz)
@@ -63,6 +57,7 @@ for p in matriz:
 
 puntos=np.asarray(puntos)
 
+#Division de los 112 puntos en train y test (90 para train y 22 para test)
 X_train, X_test, y_train, y_test = train_test_split(
                                         puntos[:,:3],
                                         puntos[:,3:],
@@ -71,7 +66,8 @@ X_train, X_test, y_train, y_test = train_test_split(
                                         shuffle      = True
                                     )
 
-
+#Normalización a la escala [0,1]
+scaler = MinMaxScaler()
 scaler.fit(X_train)
 X_train_scaled=scaler.transform(X_train)
 
@@ -86,43 +82,43 @@ y_test_scaled=scaler.transform(y_test)
 
 
 
-# 'relu',kernel_initializer='he_normal', PReLU, LeakyReLU, swish,'selu', kernel_initializer='lecun_normal'
-
-earlystop=callbacks.EarlyStopping(monitor='loss',mode='min',
-                                   patience=5,restore_best_weights=True)
-
+#Creación del modelo con una capa oculta y 60 neuronas ocultas
 model = Sequential()
-model.add(Dense(50,input_shape=(3,) ,activation='tanh',   kernel_initializer='he_normal',
+model.add(Dense(60,input_shape=(3,) ,activation='tanh',   kernel_initializer='he_normal',
                 bias_initializer='he_normal'))
-#model.add(Dense(50, activation='relu',kernel_initializer='he_normal',
-   #bias_initializer='he_normal'))
-#model.add(Dense(30, activation='relu',kernel_initializer='he_normal',
-    #bias_initializer='he_normal'))
-#model.add(Dense(300, activation='relu', kernel_initializer='random_normal',bias_initializer='zeros'))
-#model.add(Dense(300, activation='relu', kernel_initializer='random_normal',bias_initializer='zeros'))
-#model.add(Dense(250, activation='tanh'))
+
 model.add(Dense(3, activation='sigmoid'))
 
+#Compilación del modelo
 model.compile(loss='mean_squared_error',
               optimizer='adam',
               metrics=['mse'])
 print(model.summary())
-model.fit(X_train_scaled, y_train_scaled, epochs=1000,batch_size=45,validation_data=(X_test_scaled,y_test_scaled), verbose=1)
+
+#Entrenamiento del modelo
+model.fit(X_train_scaled, y_train_scaled, epochs=1000,batch_size=45,
+          validation_data=(X_test_scaled,y_test_scaled), verbose=1)
+
+#Evaluación del modelo
 scores = model.evaluate(X_train_scaled, y_train_scaled,batch_size=90)
 scores1 = model.evaluate(X_test_scaled,y_test_scaled)
 print("train:", scores)
 print("test:", scores1)
+
+#Predicción de los datos de test
 predicts_scaled= model.predict(X_test_scaled)
 
 scaler.fit(y_test)
 predicts=scaler.inverse_transform(predicts_scaled)
 
 print("Predicciones: ",predicts)
-
 print("Verdad: ",y_test)
+
+#MSE de la salida deseada y la predicha
 score= mean_squared_error(y_test,predicts)
 print("mse: ",score)
 
+#Diferencia coordenada a coordenada
 diferencia=predicts-y_test
 print(diferencia.tolist())
 
@@ -132,10 +128,12 @@ for i in range(predicts.shape[0]):
     predicts_v.append(np.linalg.norm(predicts[i]))
     y_test_v.append(np.linalg.norm(y_test[i]))
 
+#Diferencia total entre vectores
 diferencia_total=np.asarray(predicts_v)-np.asarray(y_test_v)
 print(diferencia_total)
 n_puntos=list(range(predicts.shape[0]))
 
+#Gráfica de la diferencia total
 fig,ax=plt.subplots()
 ax.plot(n_puntos,diferencia_total.tolist())
 ax.set_title("Nº de puntos frente al error total")
@@ -143,6 +141,7 @@ ax.set_xlabel("Nº de puntos")
 ax.set_ylabel("Error Total")
 plt.show()
 
+#Escritura de las diferencias coordenada a coordenada y total en archivos .txt
 with open('errores coordenada a coordenada MLP.txt', 'w') as f:
     for i in range(predicts.shape[0]):
         f.write(str(round(diferencia[i,0],3))+' '+
@@ -151,16 +150,8 @@ with open('errores coordenada a coordenada MLP.txt', 'w') as f:
 with open('errores totales MLP.txt', 'w') as f:
     for i in range(predicts.shape[0]):
         f.write(str(round(diferencia_total[i],3))+'\n')
-"""
 
-
-error=[]
-for i in range(len(salida_ver)):
-    error.append(abs(predicts[i]-salida_ver[i]))
-print('error: ',error)
-
-print(round(np.array(predicts_normal,float).mean(),3))
-print(round(np.array(predicts_normal,float).std(),3))
-
-"""
-#i=17/22/25, relu  
+#Media y desviación típica de la diferencia total
+print("media: ", round(np.mean(diferencia_total),3))
+print("desviación típica: ", round(np.std(diferencia_total),3))
+ 
