@@ -71,13 +71,11 @@ scaler = MinMaxScaler()
 scaler.fit(X_train)
 X_train_scaled=scaler.transform(X_train)
 
-scaler.fit(X_test)
 X_test_scaled=scaler.transform(X_test)
 
 scaler.fit(y_train)
 y_train_scaled=scaler.transform(y_train)
 
-scaler.fit(y_test)
 y_test_scaled=scaler.transform(y_test)
 
 
@@ -108,7 +106,7 @@ print("test:", scores1)
 #Predicción de los datos de test
 predicts_scaled= model.predict(X_test_scaled)
 
-scaler.fit(y_test)
+scaler.fit(y_train)
 predicts=scaler.inverse_transform(predicts_scaled)
 
 print("Predicciones: ",predicts)
@@ -118,7 +116,7 @@ print("Verdad: ",y_test)
 score= mean_squared_error(y_test,predicts)
 print("mse: ",score)
 
-#Diferencia coordenada a coordenada
+#Diferencia de velocidad coordenada a coordenada
 diferencia=predicts-y_test
 print(diferencia.tolist())
 
@@ -128,20 +126,14 @@ for i in range(predicts.shape[0]):
     predicts_v.append(np.linalg.norm(predicts[i]))
     y_test_v.append(np.linalg.norm(y_test[i]))
 
-#Diferencia total entre vectores
+#Diferencia de velocidad total entre vectores
 diferencia_total=np.asarray(predicts_v)-np.asarray(y_test_v)
 print(diferencia_total)
-n_puntos=list(range(predicts.shape[0]))
+n_puntos=list(range(1,23))
 
-#Gráfica de la diferencia total
-fig,ax=plt.subplots()
-ax.plot(n_puntos,diferencia_total.tolist())
-ax.set_title("Nº de puntos frente al error total")
-ax.set_xlabel("Nº de puntos")
-ax.set_ylabel("Error Total")
-plt.show()
 
-#Escritura de las diferencias coordenada a coordenada y total en archivos .txt
+
+#Escritura de las diferencias de velocidades coordenada a coordenada y total en archivos .txt
 with open('errores coordenada a coordenada MLP.txt', 'w') as f:
     for i in range(predicts.shape[0]):
         f.write(str(round(diferencia[i,0],3))+' '+
@@ -151,7 +143,43 @@ with open('errores totales MLP.txt', 'w') as f:
     for i in range(predicts.shape[0]):
         f.write(str(round(diferencia_total[i],3))+'\n')
 
-#Media y desviación típica de la diferencia total
-print("media: ", round(np.mean(diferencia_total),3))
-print("desviación típica: ", round(np.std(diferencia_total),3))
- 
+
+#Carga de errores
+"""
+e_x_mlp=np.loadtxt('errores coordenada a coordenada MLP.txt',delimiter='\t',usecols=0)
+e_y_mlp=np.loadtxt('errores coordenada a coordenada MLP.txt',delimiter='\t',usecols=1)
+e_z_mlp=np.loadtxt('errores coordenada a coordenada MLP.txt',delimiter='\t',usecols=2)
+"""
+e_mlp=np.loadtxt('errores totales MLP.txt', delimiter='\n',usecols=0)
+"""
+e_x_rbf=np.loadtxt('errores coordenada a coordenada RBF.txt',delimiter=' ',usecols=0)
+e_y_rbf=np.loadtxt('errores coordenada a coordenada RBF.txt',delimiter=' ',usecols=1)
+e_z_rbf=np.loadtxt('errores coordenada a coordenada RBF.txt',delimiter=' ',usecols=2)
+"""
+e_rbf=np.loadtxt('errores totales RBF.txt', delimiter='\n',usecols=0)
+
+#Media y desviación tpica de ambas redes componente a componente y totales
+"""
+print(e_x_mlp.mean(),e_x_mlp.std())
+print(e_y_mlp.mean(),e_y_mlp.std())
+print(e_z_mlp.mean(),e_z_mlp.std())
+
+print(e_mlp.mean(),e_mlp.std())
+
+print(e_x_rbf.mean(),e_x_rbf.std())
+print(e_y_rbf.mean(),e_y_rbf.std())
+print(e_z_rbf.mean(),e_z_rbf.std())
+
+print(e_rbf.mean(),e_rbf.std())
+"""
+#Gráfica comparativa entre diferencia de velocidad total de ambas redes
+fig,ax=plt.subplots()
+ax.plot(n_puntos,e_mlp,linestyle = 'dashed')
+ax.plot(n_puntos,e_rbf, color='red')
+ax.set_xlabel("Nº de punto")
+ax.set_ylabel("Diferencia velocidad total (m/a)")
+plt.show()
+
+
+
+#[2.30470340e+06, -4.87481716e+06,  3.39518699e+06]

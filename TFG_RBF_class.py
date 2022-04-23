@@ -75,13 +75,11 @@ scaler = MinMaxScaler()
 scaler.fit(X_train)
 X_train_scaled=scaler.transform(X_train)
 
-scaler.fit(X_test)
 X_test_scaled=scaler.transform(X_test)
 
 scaler.fit(y_train)
 y_train_scaled=scaler.transform(y_train)
 
-scaler.fit(y_test)
 y_test_scaled=scaler.transform(y_test)
 
 
@@ -113,7 +111,7 @@ print("test:", scores1)
 predicts_scaled= model.predict(X_test_scaled)
 
 #Desnormalización de los valores predichos
-scaler.fit(y_test)
+scaler.fit(y_train)
 predicts=scaler.inverse_transform(predicts_scaled)
 
 print("Predicciones: ",predicts)
